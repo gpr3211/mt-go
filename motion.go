@@ -72,18 +72,17 @@ func (m *MotionDetector) ProcessFrame() (image.Image, error) {
 	m.status = "Ready"
 	m.color = color.RGBA{0, 255, 0, 255}
 
-	// First phase: obtain foreground using MOG2
+	// get foreground
 	m.mog2.Apply(m.img, &m.imgDelta)
 
-	// Cleanup: threshold
 	gocv.Threshold(m.imgDelta, &m.imgThresh, 25, 255, gocv.ThresholdBinary)
 
-	// Dilate
+	// Dilate.
 	kernel := gocv.GetStructuringElement(gocv.MorphRect, image.Pt(3, 3))
 	gocv.Dilate(m.imgThresh, &m.imgThresh, kernel)
 	kernel.Close()
 
-	// Find contours
+	// Find contours.
 	contours := gocv.FindContours(m.imgThresh, gocv.RetrievalExternal, gocv.ChainApproxSimple)
 	defer contours.Close()
 
@@ -95,7 +94,7 @@ func (m *MotionDetector) ProcessFrame() (image.Image, error) {
 
 		m.status = "Motion detected"
 
-		// Draw contours
+		// draw contours
 
 		//	m.color = red
 		//		gocv.DrawContours(&m.img, contours, i, m.color, 2)
@@ -105,19 +104,16 @@ func (m *MotionDetector) ProcessFrame() (image.Image, error) {
 		gocv.Rectangle(&m.img, rect, color.RGBA{0, 0, 255, 255}, 2)
 	}
 
-	// Add status text
+	// status text
 	gocv.PutText(&m.img, m.status, image.Pt(10, 30), gocv.FontHersheyPlain, 1.5, m.color, 2)
-	//	fmt.Printf("found %d faces\n", len(rects))
 
-	// Draw rectangles around faces.
 	for _, r := range face {
 		imgFace := m.img.Region(r)
 		gocv.Rectangle(&m.img, r, red, 3)
-		gocv.GaussianBlur(imgFace, &imgFace, image.Pt(75, 75), 0, 0, gocv.BorderDefault)
+		gocv.GaussianBlur(imgFace, &imgFace, image.Pt(75, 75), 0, 0, gocv.BorderDefault) // blur faces.
 		imgFace.Close()
 	}
 
-	// Convert to image.Image
 	img, err := m.img.ToImage()
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert mat to image: %w", err)
